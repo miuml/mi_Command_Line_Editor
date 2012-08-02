@@ -1,0 +1,123 @@
+API Def File Format
+
+===
+-- types
+<app type>:<ui type>
+===
+# App type is defined in the API, UI type is in the UI code
+
+# Example:  short_name is defined by the PLPGSQL App whereas string is a Python (ui) type
+# The command interpreter will accept a string initially and then convert the value
+# to the UI type (if other than string).  Then this ui type can be automatically
+# converted by the DB interface code to produce a correct DB string.
+# Why do we need the app type?  Multiple model elements are characterized
+# the same app type which is then used to lookup the ui type.  It makes it easier to
+# ensure correspondence with the model and to always ensure we get the right ui type.
+
+-- commands
+<subject name>, ... [: <focus attribute type>]
+
+# The subject of a command is always some metamodel class.  Any number of easy to type names
+# for use on the command line may be supplied.  The name of the subject argument need
+# not match the actual metamodel class name since the exact api function will be
+# supplied.  So even though we have a metamodel class 'Subsystem', we care only that
+# there is a command line subject 'subsys' with a number of operations defined, each
+# bound to a particular function name such as new_subsystem which will be hardwired
+# in the API to interact with the 'Subsystem' metamodel class.
+#
+# That class may or may supply an identifier attribute that establishes local focus.
+# Here we specify both the subject class and, if it exists, the app type of its
+# focus attribute.
+#
+# Example: attr, attribute, a : name
+#
+# Three names are supplied to represent the subject class 'Attribute'.  The user may
+# type any of these three at the command line for the subject parameter.
+# The focus attribute for 'Attribute' is 'Name' which has the app type 'name'.
+#
+# Example: bridge, br
+#
+# Since the 'Bridge' class does not contribute a focus attribute (it's identifier
+# is client + service) there is no focus attribute type specified.
+#
+    <op name> : <api function name>
+#
+# For a given subject, various operations may be defined.  There are a handful
+# of standard op names such as 'new', 'del', 'set', etc.  Additionally, a few
+# odd cases appear such as 'migrate'.  Each operation is mapped to a corresponding
+# api function call.  The api function name field supplies a string used to
+# construct the complete api call.
+#
+# Example: new : new_subsystem
+#
+# The op name is 'new', so at the command line, a user can type 'new subsys ...'
+# this will result in the composition of UI_new_subsystem( ... ) using the
+# base string supplied in the right hand field.
+
+    f> [<arg alias>|]<arg name>[:<scope class>]
+
+#
+# This is a list of focus arguments that must be supplied for the operation
+# Each term consists of an optional alias followed by a '|' delimiter, then
+# the full name followed by an optional ':' delimiter and class name.  This is
+# the class that supplies the focus attribute.  It is not required if the name
+# of the arg matches the name of the focus attribute.
+#
+# Example: ac|active_class:class
+#
+# ac is short for active_class which is the focus attribute for the 'class' subject
+#
+# Example: subsys
+#
+# The subsys argument corresponds to the <subject name> 'subsys' class focus
+# attribute
+
+    m> <
+
+
+API Grammar
+===
+
+command::	{ Subject.Name:<subject>, ... }
+
+subject::	{ 'names':[ Alias.Name, ... ], { ?'scope':<scope>?, 'ops':<opset> }
+
+scope::		{ 'type':Simple Name Subject.Type, 'default':Simple Name Subject.Default value }
+
+opset::		{ Operation.Name:<op>, ... }
+
+op::		{ 'args':<argset>, 'api_call':Command.API_call, ?'olist':<o_params> }
+
+argset::	{ Argument.Name:<farg> OR <marg> ...  }
+
+farg::		{ 'purpose':'focus', ?'param':Argument.API_param?, 'scope':Simple Name Subject.Name }
+
+marg::		{ 'purpose':'mod', ?'param':Argument.API_param?, ?'default':Modify Argument.Default value? }
+
+o_params::  [ oarg, ... ]
+
+
+
+
+
+Example:
+-- init
+command	{
+	attr':{
+		'names':['attr', 'a', 'attribute'], 'scope':{'type':'name', 'default':''}
+		'ops':[{'name':'new', 'api_call':'new_ind_attr'}],
+	}
+}
+this_subject	'attr'
+this_op			''
+state			'operation'
+
+-- subject
+
+-- operation
+
+-- args
+arg_rec			['ac|active_class:class', 'pc|passive_class:class', 'subsys', 'domain']	
+a				'ac|active_class:class'
+farg			{'ui':'ac', 'app':'active_class', 'uiapp':None, 'focus':'class'}
+

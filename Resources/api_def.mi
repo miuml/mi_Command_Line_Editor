@@ -1,0 +1,124 @@
+-- types
+# <app_type>:<ui_type>
+compound_name:string
+nominal:integer
+name:string
+short_name:string
+posint:integer
+text:string
+description:string
+domain_type:[ modeled | realized ]
+persp:[ active | passive ]
+mult:[ one | many ]
+boolean:bool
+==
+
+-- commands
+# <subject_name>[, ...] [: <local_naming_attr_name>]
+# Additional subject names provided as aliases used on command line
+# Label attr name is the attribute, if any, that locally names a unique instance
+
+# The Subsystem class defines the local Subsystem.Name attribute
+# which distinguishes one Subsystem from another in the same Domain
+subsys, subsystem : name
+# <op_name> : <api_call_name>
+    new : new_subsystem
+        # Focus f> attributes identify object to be operated upon
+        # <attr_name>[|<alias>]...:<scope>
+        # <scope> is the local naming attribute of the identified subject
+        f> d|domain:domain
+        # Modify m> attributes are used by the operation
+        # <attr_name>[|<alias>]...:<app_type>[=<default_value>]
+        m> name:name, alias:short_name, floor:posint, ceiling:posint
+    del : delete_subsystem
+        f> d|domain:domain
+        m> name:name
+    set_next_cnum : set_subsystem_next_cnum
+        f> name:subsys, d|domain:domain
+        m> nv|next_value:posint
+    set_next_rnum : set_subsystem_next_rnum
+        f> name:subsys, d|domain:domain
+        m> nv|next_value:posint
+    set : set_subsystem
+        f> name:subsys, d|domain:domain
+        m> [new_name:name], [new_alias:short_name]
+    show : get_subsystems
+        f> [d|domain:domain]
+        # Output o> attributes are returned by the operation
+        o> domain, name, alias, floor, ceiling
+
+attr, attribute, a : name
+    new : new_ind_attr
+        f> name:attr, c|class:class, d|domain:domain
+        m> type:name
+    del : delete_attr
+        f> name:attr, c|class:class, d|domain:domain
+        m> [f|force:boolean]
+    id : add_attr_to_id
+        f> name:attr, c|class:class, d|domain:domain
+        m> [id|id_num:nominal]
+
+brel, bin_assoc, binary_association : nominal
+    new : new_binary_assoc
+        f> ac|active_class:class, pc|passive_class:class, subsys, d|domain:domain
+        m> [rnum:nominal], fpersp|formalizing_persp:persp, amult|active_mult:mult
+        m> [acond|active_cond:boolean], aph|active_phrase:name
+        m> pmult|passive_mul:mult, [pcond|passive_cond:boolean]
+        m> pph|passive_phrase:name
+        m> [ac|assoc_class:name], [acalias|assoc_alias:short_name]
+
+# No label name for the Bridge class since it's identifier
+# is composed entirely from foreign naming attributes
+bridge, br
+    new : new_bridge
+        m> client:name, service:name
+    del : delete_bridge
+        m> client:name, service:name
+    show : get_bridges
+        f> [c|client:domain], [s|service:domain]
+        o> client, service
+
+class, c : name
+    new : new_class
+        f> name:class, subsys, d|domain:domain
+        m> alias:short_name, [cnum:nominal], [id_name:name], [id_type:name]
+    set : set_class
+        f> name:class, d|domain:domain
+        m> [new_cnum:nominal], [new_name:name], [new_alias:short_name]
+    show : get_classes
+        f> [d|domain:domain], [s|subsystem:subsys]
+        o> name, alias, element, cnum, specialized, subsystem, domain
+    ids : get_id_attrs_for_class
+        f> name:class, d|domain:domain
+        m> [id|id_num:nominal]
+    del : delete_class
+        f> name:class, d|domain:domain
+        m> [f|force:boolean]
+
+domain, d : name
+    new : new_domain
+        m> name:name, alias:short_name, [type:domain_type]
+    del : delete_domain
+        m> name:name 
+    subsys : getall_subsystems
+        f> d|domain:domain
+        o> name, alias, floor, ceiling
+    show : get_domains
+        o> name, alias, dtype
+    set : set_domain
+        f> name:domain
+        m> [new_name:name], [new_alias:short_name]
+
+domain_build_spec, dbspec : name
+    show : get_domain_build_spec
+        o> domain_name_is_default_subsys_name:boolean
+        o> default_subsys_name:name
+        o> default_subsys_range:posint
+        o> default_id_name:name, default_id_type:name
+    set : set_domain_build_spec
+        m> [subsys_name|default_subsys_name:name]
+        m> [subsys_range|default_subsys_range:posint]
+        m> [id_name|default_id_name:name]
+        m> [id_type|default_id_type:name]
+        m> [use_domain_name|domain_name_is_default_subsys_name:boolean]
+==

@@ -1,0 +1,3 @@
+new domain -name Radar -alias RAD
+new class -name Blip -subsys Main -d Radar -alias B
+new attr -name Code -c Blip -d Radar -type short name

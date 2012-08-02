@@ -1,0 +1,19 @@
+-- deferrals
+UI_set_domain
+    R502_Lifecycle__is_a__State_Model
+    R502_Assigner__is_a__State_Model
+    R510_Deletion_Pstate__is_a__Destination
+    R510_State__is_a__Destination
+    R560_Effective_Event__is_an__Event
+    R560_Delegated_Event__is_an__Event
+    R568_Local_Effective_Signaling_Event__is_an__Effective_Signaling_Event
+    R568_Inherited_Effective_Event__is_an__Effective_Signaling_Event
+    R562_Event_Signature__is_a__State_Model_Signature
+    R562_State_Signature__is_a__State_Model_Signature
+    creation_event_to_state_fkey
+    creation_event_id_fkey
+    event_response_event_fkey
+    transition_destination_fkey
+    local_effective_event_id_fkey
+    state_signature_state_fkey
+==
