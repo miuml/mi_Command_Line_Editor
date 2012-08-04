@@ -22,8 +22,13 @@ editing session.
 # vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
 
 # System
-from os import path
+import os
 import readline
+
+# Go to real code file directory, in case invoked by symbolic link
+# so we can find required relative parent/sibling directories
+# We must do this before importing anything local that uses relative paths
+os.chdir( os.path.dirname( os.path.realpath(__file__) ) )
 
 # Local
 from mi_API import API
@@ -36,7 +41,7 @@ import pdb
 READLINE_INIT_FILE = ".inputrc"
 
 # Set up readline
-readline.read_init_file( path.join( path.expanduser('~'), READLINE_INIT_FILE ) )
+readline.read_init_file( os.path.join( os.path.expanduser('~'), READLINE_INIT_FILE ) )
 
 interactive = False
 cmd_files = None
@@ -60,6 +65,6 @@ if __name__ == '__main__':
 
 # Launch an interactive editing session
 Session(
-    ("miUML Editor", "UI_", path.join( "Resources", "api_def.mi" )),
+    ("miUML Editor", "UI_", os.path.join( "Resources", "api_def.mi" )),
     cmd_files, interactive, piped_input, diagnostic, messages
 )
