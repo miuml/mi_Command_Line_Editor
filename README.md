@@ -1,6 +1,8 @@
 mi_Command_Line_Editor
 ======================
 
+See the wiki on github for detailed instructions.
+
 A very basic command line editor that uses the miUML posgresql API functions to build, view and edit miUML models.
 
 Start it up by launching miuml.py.
