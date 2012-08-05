@@ -47,7 +47,7 @@ interactive = False
 cmd_files = None
 piped_input = False
 diagnostic = False
-messages = True
+verbose = False
 
 if __name__ == '__main__':
     # Process command line args
@@ -59,12 +59,12 @@ if __name__ == '__main__':
             interactive = True
         if '-d' in argv[1:]:
             diagnostic = True
-        if '-m' in argv[1:]:
-            messages = False
+        if '-v' in argv[1:]:
+            verbose = True
         cmd_files = [f for f in argv[1:] if not f.startswith('-')]
 
 # Launch an interactive editing session
 Session(
     ("miUML Editor", "UI_", os.path.join( "Resources", "api_def.mi" )),
-    cmd_files, interactive, piped_input, diagnostic, messages
+    cmd_files, interactive, piped_input, diagnostic, verbose
 )

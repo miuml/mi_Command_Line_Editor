@@ -79,7 +79,7 @@ class db_Session:
                 current_api = record
                 self.deferrals[current_api] = []
 
-    def exec_command( self, cmd, pvals, ovals, diagnostic_on, messages_on ):
+    def exec_command( self, cmd, pvals, ovals, diagnostic_on, verbose_on ):
         """
         Execute a command and return the result
 
@@ -95,7 +95,7 @@ class db_Session:
 
         scmd = "select * from " + cmd
         cmd_string = str( self.x.mogrify( scmd, pvals ) ).lstrip( "b" ) # convert from b string
-        if messages_on:
+        if verbose_on:
             print(  "----> [{}]".format( cmd_string[1:-1] ) ) # strip single or double quotes
         if diagnostic_on:
             return None, None

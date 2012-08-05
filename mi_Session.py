@@ -73,10 +73,10 @@ class Session:
     Session Class
 
     """
-    def __init__( self, api_args, cmd_files, interactive, piped_input, diagnostic, messages ):
+    def __init__( self, api_args, cmd_files, interactive, piped_input, diagnostic, verbose ):
         self.api_args = api_args
         self.spec = Session_Spec()
-        self.messages = messages
+        self.verbose = verbose
         self.diagnostic = diagnostic
         self.api_args
         self.api = API( *api_args )
@@ -274,13 +274,13 @@ class Session:
             print()
 
 
-    def ui_toggle_messages( self, arg_map ):
+    def ui_toggle_verbose( self, arg_map ):
         """
-        Toggles messages mode where API calls are printed before being invoked.
+        Toggles verbose mode where API calls are printed before being invoked.
 
         """
-        self.messages = not( self.messages )
-        print( "Message mode {}".format( "ON" if self.messages else "OFF") )
+        self.verbose = not( self.verbose )
+        print( "Verbose mode {}".format( "ON" if self.verbose else "OFF") )
 
 
     def ui_toggle_diagnostic( self, arg_map ):
@@ -363,8 +363,8 @@ class Session:
                 'help':""
             }
 
-        self.ui_cmd['messages'] = {
-                'func':Session.ui_toggle_messages,
+        self.ui_cmd['verbose'] = {
+                'func':Session.ui_toggle_verbose,
                 'syntax':{},
                 'grouping':( () ),
                 'help':""
@@ -411,7 +411,7 @@ class Session:
                 'r':'refresh', 'refresh':'refresh',
                 'read':'read', 'run':'read',
                 'diagnostic':'diagnostic', 'd':'diagnostic',
-                'messages':'messages', 'm':'messages'
+                'verbose':'verbose', 'v':'verbose'
             }
 
         # Create help syntax dictionary with entry for each command
@@ -569,7 +569,7 @@ class Session:
         try:
             relations, attrs = self.editor.exec_command(
                     command['call'], command['pvals'], command['ovals'],
-                    self.diagnostic, self.messages
+                    self.diagnostic, self.verbose
                 )
         except mi_DB_Error:
             if self.mode in {'batch', 'file'}:
