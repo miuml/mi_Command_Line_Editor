@@ -120,7 +120,10 @@ class Session:
             arg_map["help"] = True  # Detected when building the API command
             return arg_map
 
-        line = arg_text.strip() # line is unparsed portion of arg_text
+        # line is unparsed portion of arg_text
+        # strip it and remove any internal single or double quotes
+        line = arg_text.strip().replace("'","").replace('"',"")
+
         match_end = 0 # total length of matched groups for line chopping
         while line:
             r = self.spec.arg_re['arg_val'].match( line )
