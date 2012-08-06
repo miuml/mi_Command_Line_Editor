@@ -28,6 +28,17 @@ import readline
 # Go to real code file directory, in case invoked by symbolic link
 # so we can find required relative parent/sibling directories
 # We must do this before importing anything local that uses relative paths
+
+# The directory where the editor is launched is not necessarily the same
+# as the source code directory, particularly if a symbolic link is used.
+# We'll need it to get the correct path names of any command files specified
+# as arguments.
+launch_dir = os.getcwd()
+
+# Local modules and resource directories are easiest to find if we ensure
+# that the current directory is the source code directory.
+# So we go there immediately.  Realpath is used in case we are launched with
+# a symbolic link.
 os.chdir( os.path.dirname( os.path.realpath(__file__) ) )
 
 # Local
@@ -61,10 +72,15 @@ if __name__ == '__main__':
             diagnostic = True
         if '-v' in argv[1:]:
             verbose = True
-        cmd_files = [f for f in argv[1:] if not f.startswith('-')]
+        # Make a list of absolute path names relative to the launch
+        # directory for each command file provided
+        cmd_files = [
+                os.path.abspath( os.path.join( launch_dir,f ) )
+                for f in argv[1:] if not f.startswith('-')
+            ]
 
 # Launch an interactive editing session
-Session(
+Session( launch_dir,
     ("miUML Editor", "UI_", os.path.join( "Resources", "api_def.mi" )),
     cmd_files, interactive, piped_input, diagnostic, verbose
 )

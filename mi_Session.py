@@ -73,7 +73,9 @@ class Session:
     Session Class
 
     """
-    def __init__( self, api_args, cmd_files, interactive, piped_input, diagnostic, verbose ):
+    def __init__( self,
+            launch_dir, api_args, cmd_files, interactive, piped_input, diagnostic, verbose ):
+        self.launch_dir = launch_dir
         self.api_args = api_args
         self.spec = Session_Spec()
         self.verbose = verbose
@@ -326,21 +328,32 @@ class Session:
         session.
 
         """
+        cmd_file = arg_map['file'] if os.path.isabs(arg_map['file']) else \
+                os.path.join( self.launch_dir, arg_map['file'] )
         try:
-            cf = open( arg_map['file'] )
+            cf = open( cmd_file )
         except IOError:
-            mi_File_Error("Could not open", arg_map['file'] )
+            mi_File_Error("Could not open", cmd_file )
             return
+        print()
+        print("Reading file: " + cmd_file )
+        print ()
 
         self.mode = "file"
         for command in cf:
+            print( "* " + command.strip() )
             try:
                 self.process( command )
             except mi_Quiet_Error:
-                print( "Command file aborted.")
+                print()
+                print( "Aborted file: " + cmd_file )
+                print()
                 return # to interactive session
             finally:
                 self.mode = "interactive"
+        print()
+        print( "End of file: " + cmd_file )
+        print()
 
     def init_ui_cmd( self ):
         """
@@ -457,20 +470,29 @@ class Session:
 
         """
         for cmd_fname in cmd_files:
+            print()
+            print("Reading file: " + cmd_fname )
+            print()
             try:
                 cf = open( cmd_fname )
             except:
                 mi_File_Error("Could not open", cmd_fname )
             for command in cf:
+                print( "* " + command.strip() )
                 try:
                     self.process( command )
                 except:
                     # If a command fails, no point in reading the rest of the file
                     # since the error will likely cascade.  Stop processing files.
+                    print()
+                    print( "Aborted file: " + cmd_fname )
+                    print()
                     if not interactive:
                         exit(1)
                     return # Will enter an interactive session
-
+            print()
+            print( "End of file: " + cmd_fname )
+            print()
 
     def interact( self ):
         """
@@ -520,6 +542,8 @@ class Session:
                 print("Bye.")
                 print()
                 break
+            if self.mode != "interactive":
+                print( "* " + line.strip() )
             try:
                 self.process( line )
             except mi_Command_Error:

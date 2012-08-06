@@ -120,7 +120,7 @@ class API:
         print()
         for s in self.commands:
             # Print names and aliases
-            print( " | ".join(self.commands[s]['names']) + ": " )
+            print( " / ".join(self.commands[s]['names']) + ": " )
             for op in self.commands[s]['ops']:
                 print( "   " + self.commands[s]['ops'][op]['help'] )
             print()
