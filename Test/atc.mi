@@ -1,0 +1,5 @@
+new domain -name Air Traffic Control -alias ATC
+focus -s domain -v Air Traffic Control
+set subsys -name Main -new_name Airfield Management -new_alias AFM
+new class -name Aircraft -subsys Airfield Management -alias Aircraft
+focus -s class -v Aircraft
