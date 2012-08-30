@@ -40,6 +40,7 @@ from mi_Error import *
 from mi_API import API
 import mi_RDB
 
+COMMENT_CHAR = "#" # To strip comments out of command input files
 OP, SUB, ARGS = range(3) # enumeration for line parts
 UIOP, UIARGS = range(2)
 # Class and class based methods used for all singletons
@@ -341,7 +342,10 @@ class Session:
 
         self.mode = "file"
         for command in cf:
-            print( "* " + command.strip() )
+            command = command.strip()
+            if not command or command.startswith( COMMENT_CHAR ):
+                continue
+            print( "* " + command )
             try:
                 self.process( command )
             except mi_Quiet_Error:
@@ -518,13 +522,14 @@ class Session:
 
         # Prompt for commands and process them until a quit command is detected
         while True:
-            line = ""
+            line = None
             while not line: # ignore blank lines
                 try:
                     if self.mode == "interactive":
                         line = input( self.spec.prompt )
                     else:
                         line = input()
+                        line = None if line.startswith( COMMENT_CHAR ) else line
                 except EOFError:
                     # We'll get this when processing an input stream
                     if self.mode == "piped":

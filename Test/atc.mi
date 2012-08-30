@@ -1,5 +1,29 @@
+# This test case builds the Air Traffic Control class model
+# Data types are limited at this point, so only name and posint are used
+# for now
+
 new domain -name Air Traffic Control -alias ATC
 focus -s domain -v Air Traffic Control
+
 set subsys -name Main -new_name Airfield Management -new_alias AFM
-new class -name Aircraft -subsys Airfield Management -alias Aircraft
-focus -s class -v Aircraft
+focus -s subsys -v Airfield Management
+
+    new class -name Air Traffic Controller -alias ATC
+    focus -s class -v Air Traffic Controller
+        new attr -name Name -type name
+        new attr -name Rating -type name
+
+    new class -name Control Zone -alias CZ -id_name Name -id_type name
+    new attr -name Traffic -type posint -c Control Zone
+
+    new class -name Duty Station -alias DS -id_name Number -id_type nominal
+    focus -s class -v Duty Station
+        new attr -name Location -type name
+        new attr -name Capacity -type posint
+
+    new class -name Shift Specification -alias SHIFT_SPEC -id_name Name -id_type name
+    focus -s class -v Shift Specification
+        new attr -name Min break -type posint
+        new attr -name Max break -type posint
+
+focus -c class
