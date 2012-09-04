@@ -67,6 +67,13 @@ brel, bin_assoc, binary_association : nominal
         m> pph|passive_phrase:name
         m> [ac|assoc_class:name], [acalias|assoc_alias:short_name]
 
+gen, grel, generalization : nominal
+    new : new_gen
+        f> subsys, d|domain:domain
+        m> superclass:name, [super_alias:short_name]
+        m> subclasses:name..., [sub_aliases:short_name...]
+        m> [rnum:nominal]
+
 # No label name for the Bridge class since it's identifier
 # is composed entirely from foreign naming attributes
 bridge, br

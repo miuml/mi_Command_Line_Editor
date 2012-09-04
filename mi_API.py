@@ -183,6 +183,7 @@ class API:
         pvals = []
         # Now add any params
         for a in arg_map:
+
             # If the parameter name defined by the app is different than the
             # arg name, get it (works for both mod and focus args)
             pname = self.commands[subject]['ops'][op]['args'][a].get('app')
@@ -196,7 +197,12 @@ class API:
             param_type = self.commands[subject]['ops'][op]['args'][a].get('type')
             if not param_type:
                 mscope = self.commands[subject]['ops'][op]['args'][a].get('scope')
-                param_type = self.commands[subject]['scope']
+                param_type = self.commands[mscope]['scope']
+
+            # Is this a list of arg values?  For example, list of subclass names
+            is_list = self.commands[subject]['ops'][op]['args'][a].get('list', False)
+            if is_list and type( arg_map[a] ) != list:
+                raise mi_Arg_Type_Error( pname )
 
             # Get the closest ui type
             ui_type = self.types[param_type]
@@ -205,12 +211,31 @@ class API:
             # this is just the ui_type, but set ui_type is a special case as it is
             # an actual set and not a Python type class.
             validator = ui_type if type( ui_type ) != set else set
-            arg_map[a], type_ok = type_check[validator]( ui_type, arg_map[a] )
+
+            if is_list:
+                # We need to validate the type of each element
+                for e in arg_map[a]:
+                    e, type_ok = type_check[validator]( ui_type, e )
+                    if not type_ok:  # If any element is bad, we'll throw an error
+                        break
+            else:
+                # We just need to type validate a single value
+                arg_map[a], type_ok = type_check[validator]( ui_type, arg_map[a] )
+
             if not type_ok:
                 raise mi_Arg_Type_Error( pname )
 
-            app_call += "p_{}:=%s, ".format( pname )
-            pvals.append( arg_map[a] )
+            placeholder = "%s" if not is_list else \
+                "array[" + ", ".join( list( ["%s"]*len( arg_map[a] ) ) ) + "]"
+                # [%s, %s, ...] for each element in arg_map[a] list
+
+            app_call += "p_{}:={}, ".format( pname, placeholder )
+            if is_list:
+                pvals += arg_map[a] # If arg_map[a] is a list we want to unwind it here
+                                # so we use + instead of append
+            else:
+                pvals.append( arg_map[a] )
+
         app_call = app_call.rstrip(', ') + ')' # Kill the rightmost ',' and add closing paren
 
         ovals = self.commands[subject]['ops'][op].get('olist')
@@ -343,9 +368,12 @@ class API:
                 #re.compile( r'(?P<ui>\w+)\|(?P<app>\w+):(?P<type>\w+)=(?P<default>\w+)' ),
                 # match ph|phrase:text
                 re.compile( r'(?P<ui>\w+)\|(?P<app>\w+):(?P<type>\w+)' ),
+                # match [ph:text...]
+                re.compile( r'(?P<optional>\[)(?P<ui>\w+):(?P<type>\w+)(?P<list>\.\.\.)\]' ),
                 # match [ph:text]
                 re.compile( r'(?P<optional>\[)(?P<ui>\w+):(?P<type>\w+)\]' ),
-                #re.compile( r'(?P<ui>\w+):(?P<type>\w+)=(?P<default>\w+)' ),
+                # match ph:text...
+                re.compile( r'(?P<ui>\w+):(?P<type>\w+)(?P<list>\.\.\.)' ),
                 # match ph:text
                 re.compile( r'(?P<ui>\w+):(?P<type>\w+)' )
             ],
@@ -416,7 +444,7 @@ class API:
                     raise mi_Error( 'Args outside of operation.' )
 
                 # discard [mfo]> prefix and split to list on commas, stripping spaces
-                args_rec = re.findall( r'\[?\w[\w\|:]*\]?', line.split('>')[1] ) # right of x>
+                args_rec = re.findall( r'\[?\w[\w\|:\.]*\]?', line.split('>')[1] ) # right of x>
                 purpose = pcode[r.group('purpose')] # map x> to name of purpose
 
                 for a in args_rec:
@@ -433,6 +461,7 @@ class API:
                         )
 
                     d['optional'] = True if d.get('optional') else False
+                    d['list'] = True if d.get('list') else False
 
                     if d.get('o_param'):
                         if op.get('olist'):
@@ -461,7 +490,12 @@ class API:
                         arg_type = "<{}>".format( d['type'] )
 
                     op['args'][arg_name] = d # add argument to the argset for the current op
-                    h = "-{} {}".format( arg_name, arg_type )
+                    if "boolean" in arg_type:
+                        h = "-{}".format( arg_name )
+                    else:
+                        h = "-{} {}".format( arg_name, arg_type )
+                    if d['list']:
+                        h = h + "[, ...]"
                     if d['optional']:
                         h = "[" + h + "] "
                     else:

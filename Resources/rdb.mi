@@ -16,4 +16,6 @@ UI_set_domain
     transition_destination_fkey
     local_effective_event_id_fkey
     state_signature_state_fkey
+UI_new_gen
+    R103_Generalization__requires__Superclass
 ==

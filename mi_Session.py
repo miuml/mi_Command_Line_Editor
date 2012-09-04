@@ -40,7 +40,7 @@ from mi_Error import *
 from mi_API import API
 import mi_RDB
 
-COMMENT_CHAR = "#" # To strip comments out of command input files
+COMMENT_CHAR = "#" # This is the comment character used in command files
 OP, SUB, ARGS = range(3) # enumeration for line parts
 UIOP, UIARGS = range(2)
 # Class and class based methods used for all singletons
@@ -61,40 +61,84 @@ class Session_Spec:
         self.title = "miUML Command Line Editor"
         self.license = ("This program is distributed under the GNU Lesser General\n"
                 "Public License as part of the miUML metamodel library.")
-        self.arg_re = {
-                    # example: -s name
-                    # Note that names may contain spaces
-                    'arg_val':re.compile( r'^-(?P<arg>\w+)\s+(?P<value>\w[\w\/\.\s]*)' ),
-                    # example: -c
-                    'arg_only':re.compile( r'^-(?P<arg>\w+)\s*(-.*)?$' )
-                }
+
+        # Each pair of function, pattern pairs extracts arg name, arg value, and match end
+        # for the specified arg value pattern
+        self.arg_extract = (
+
+                # arg with list of values ex: -subclasses On Duty ATC, Off Duty ATC
+                ( lambda r: (
+                        r.group('arg'),
+                        # break out each : cluster into a tuple
+                        [x.strip() for x in r.group('value').split(",")],
+                        r.end('value'),
+                        'list'
+                    ),
+                    re.compile( r'^-(?P<arg>\w+)\s+(?P<value>\w[\w\/\.\s]*,\s*\w[\w\/\.\s,]*)' ),
+                        # There must be a comma after the first value and then
+                        # alternating text and commas okay up to the next - arg marker
+                        # This is constrained just enough to detect the comma-list pattern
+                        # but not enough to detect malformed names containing commas
+                ),
+
+                # arg with single scalar value ex: -c Air Traffic Control
+                ( lambda r: (
+                            r.group('arg'),
+                            r.group('value').strip(),
+                            r.end('value'),
+                            'value'
+                        ),
+                        re.compile( r'^-(?P<arg>\w+)\s+(?P<value>\w[\w\/\.\s]*)' ),
+                ),
+
+                # arg name only to represent the setting of a flag ex: -force
+                ( lambda r: (
+                        r.group('arg'),
+                        True,
+                        r.end('arg'),
+                        'flag'
+                    ),
+                    re.compile( r'^-(?P<arg>\w+)\s*(-.*)?$' )
+                )
+            )
 
 class Session:
     """
-    Session Class
+    Session
+
+    All user interaction occurs in the context of a Session.
 
     """
     def __init__( self,
             launch_dir, api_args, cmd_files, interactive, piped_input, diagnostic, verbose ):
+
+        # Set passed in values and link to my Session Specification
         self.launch_dir = launch_dir
-        self.api_args = api_args
+        self.api_args = api_args # These args are passed through to the API
         self.spec = Session_Spec()
-        self.verbose = verbose
-        self.diagnostic = diagnostic
-        self.api_args
+        self.verbose = verbose # initial setting passed in from the command line
+        self.diagnostic = diagnostic # initial setting passed in from the command line
+
+        # Initialize the API
         self.api = API( *api_args )
+
+        # Initialized UI specific (non-API) features
         self.ui_cmd = {}
         self.ui_alias = {}
         self.exit_commands = ['q', 'quit', 'exit', 'ciao', 'bye']
         self.init_ui_cmd()
+
+        # Initialize the DB session
         self.editor = mi_RDB.db_Session()
+
+        # Special handling of stdio if a command file is piped in
         if piped_input:
             self.mode = "piped"
             self.interact()
             if not cmd_files and not interactive:
                 exit(0)
             if interactive:
-                # Switch standard input to tty
+                # Switch standard input to tty for interactive session
                 sys.stdin = open('/dev/tty', 'r')
         if cmd_files:
             self.mode = "batch"
@@ -102,9 +146,32 @@ class Session:
             if not interactive:
                 self.editor.close()
                 exit(0)
+
+        # Start prompting for commands
         self.mode = "interactive"
         self.interact()
+
+        # User ended the command session, clean up and quit
         self.editor.close()
+
+    def extract_arg_item( self, arg_text ):
+        """
+        Extracts the leftmost argument name - value pair from the supplied text
+        and returns the end char position of the matched text.
+
+        """
+        for f, p in self.spec.arg_extract: # function, pattern
+            r = p.match( arg_text ) # Matches leftmost arg-value pair, if any
+            if r:
+                # Apply the extraction function for this pattern
+                a, v, match_end, pattern = f( r )
+                # Chop off what we just extracted on the left
+                arg_text = None if match_end >= len( arg_text ) - 1 \
+                    else arg_text[match_end:].lstrip()
+                return a, v, pattern, arg_text
+
+        # No pattern matched
+        raise mi_Syntax_Error( "<op> <subject> [<args>]" )
 
     def parse_app_args( self, arg_text ):
         """
@@ -125,54 +192,33 @@ class Session:
 
         # line is unparsed portion of arg_text
         # strip it and remove any internal single or double quotes
-        line = arg_text.strip().replace("'","").replace('"',"")
+        arg_text = arg_text.strip().replace("'","").replace('"',"")
 
         match_end = 0 # total length of matched groups for line chopping
-        while line:
-            r = self.spec.arg_re['arg_val'].match( line )
-            if r: # matches arg value pattern, ex: -s domain
-                a, v = r.group('arg'), r.group('value').strip('" ') # ex: a is 's', v is 'domain'
-                match_end = r.end('value') # End of matched text so we can chop the line
-            else:
-                r = self.spec.arg_re['arg_only'].match( line )
-                if r: # matches arg only pattern, ex: -f
-                    a = r.group('arg')
-                    match_end = r.end('arg')
-                    v = True
-                else:
-                    raise mi_Syntax_Error( "<op> <subject> [<args>]" )
-
-            # Add arg_map entry a, v
+        while arg_text:
+            a, v, pattern, arg_text = self.extract_arg_item( arg_text )
             arg_map[a] = v
-
-            if match_end >= len(line)-1:
-                break # The remainder of the line has been matched
-
-            # Chop the parsed text and extraneous whitespace and continue parsing
-            line = line[match_end:].lstrip()
+            # pattern not used for app args
 
         return arg_map
 
-
     def parse_ui_args( self, op, arg_text ):
         """
-        Parses the args porition of a single text command line to produce an arg_map.
+        Parses the args portion of a single text command line to produce an arg_map.
         This is a dictionary of arg:value and switch:True pairs.  The arg_map can be
         later supplied to the op's designated implementation function.
 
         """
         arg_map = {} # the parsed data goes here
-        line = arg_text.strip() # line is unparsed portion of arg_text
+        arg_text = arg_text.strip() # line is unparsed portion of arg_text
         fset = set() # For grouping comparison
 
         # Build the arg map
         match_end = 0 # total length of matched groups for line chopping
-        while line:
-            r = self.spec.arg_re['arg_val'].match( line )
-            if r: # matches arg value pattern, ex: -s domain
-                a, v = r.group('arg'), r.group('value') # ex: a is 's', v is 'domain'
-                match_end = r.end('value') # End of matched text so we can chop the line
+        while arg_text:
+            a, v, pattern, arg_text = self.extract_arg_item( arg_text )
 
+            if pattern == 'value': # matches arg value pattern, ex: -s domain
                 # validate( a ) # validate_uiarg(a) or validate_apparg(a)
                 if a not in self.ui_cmd[op]['syntax']:
                     # Arg not defined for this op
@@ -181,41 +227,35 @@ class Session:
                 if self.ui_cmd[op]['syntax'][a]['action'] != 'store':
                     # Arg does not take a value for this op
                     raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
-            else:
-                r = self.spec.arg_re['arg_only'].match( line )
-                if r: # matches arg only pattern, ex: -f
-                    a = r.group('arg')
-                    match_end = r.end('arg')
 
-                    if a not in self.ui_cmd[op]['syntax']:
-                        # Arg not defined for this op
-                        raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
-
-                    arg_spec = self.ui_cmd[op]['syntax'][a] # for brevity
-
-                    if arg_spec['action'] == 'store':
-                        try:
-                            v = arg_spec['default']
-                        except KeyError:
-                            # Value should have been specified since there was no default
-                            raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
-                    elif arg_spec['action'] == 'switch':
-                        v = True
-                    else: # action must be 'store' or 'switch', fatal error
-                        raise mi_Error( 'No action defined for flag: ' + a )
-                else: # No pattern match for line, bad arg text
+            elif pattern == 'flag': # matches flat pattern, ex: -f
+                if a not in self.ui_cmd[op]['syntax']:
+                    # Arg not defined for this op
                     raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
+
+                arg_spec = self.ui_cmd[op]['syntax'][a] # for brevity
+
+                if arg_spec['action'] == 'store':
+                    try:
+                        v = arg_spec['default']
+                    except KeyError:
+                        # Value should have been specified since there was no default
+                        raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
+                elif arg_spec['action'] == 'switch':
+                    v = True
+                else: # action must be 'store' or 'switch', fatal error
+                    raise mi_Error( 'No action defined for flag: ' + a )
+            else:
+                # A regex was matched, but it's not valid for a ui command
+                # For example, a comma separated list is not an acceptable ui arg
+                raise mi_Syntax_Error( self.ui_cmd[op]['help'] )
 
             # Add arg_map entry a, v, will overwrite any duplicate
             arg_map[ self.ui_cmd[op]['syntax'][a]['var'] ] = v.strip() if v else None
 
             # Update group
             fset.add(a)
-            if match_end >= len(line)-1:
-                break # The remainder of the line has been matched
 
-            # Chop the parsed text and extraneous whitespace and continue parsing
-            line = line[match_end:].lstrip()
 
         # Ensure that each required flag has been provided
         # and has a value.  Switches will always carry a True value.
@@ -482,7 +522,10 @@ class Session:
             except:
                 mi_File_Error("Could not open", cmd_fname )
             for command in cf:
-                print( "* " + command.strip() )
+                command = command.strip()
+                if not command or command.startswith( COMMENT_CHAR ):
+                    continue
+                print( "* " + command )
                 try:
                     self.process( command )
                 except:

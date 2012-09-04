@@ -50,12 +50,13 @@ class db_Session:
             raise mi_Error( "Cannot connect to miUML database." )
 
         self.conn.set_session(
-                isolation_level='serializable', readonly=False, autocommit=True
+                isolation_level='serializable', readonly=False, autocommit=False
             )
         self.x = self.conn.cursor()
         try: # Set the search path
             self.x.execute( "set search_path to mi, mitrack, miuml, mitype, midom, miclass, "
                     "mirel, miform, mirrid, mistate, mipoly" )
+            self.conn.commit()
         except:
             raise mi_Error( "Cannot set the db search_path." )
         self.x.close()
@@ -91,17 +92,22 @@ class db_Session:
         if api_name in self.deferrals: # Any constraints to defer?
             # make a csv list of constraints and defer them for this transaction
             defer_cmd = "set constraints " + ", ".join( self.deferrals[api_name] ) + " deferred"
+
+            if verbose_on:
+                defer_string = str( self.x.mogrify( defer_cmd ) ).lstrip( "b" )
+                print(  "====> [{}]".format( defer_string[1:-1] ) ) # strip single or double quotes
+
             self.x.execute( defer_cmd )
 
         scmd = "select * from " + cmd
-        cmd_string = str( self.x.mogrify( scmd, pvals ) ).lstrip( "b" ) # convert from b string
         if verbose_on:
+            cmd_string = str( self.x.mogrify( scmd, pvals ) ).lstrip( "b" ) # convert from b string
             print(  "----> [{}]".format( cmd_string[1:-1] ) ) # strip single or double quotes
         if diagnostic_on:
             return None, None
         try:
             self.x.execute( scmd, pvals )
-            #self.conn.commit()
+            self.conn.commit()
         except Exception as e:
             self.x.close()
             raise mi_DB_Error( e.pgcode, e.pgerror )
