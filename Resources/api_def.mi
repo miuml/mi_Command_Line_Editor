@@ -60,11 +60,11 @@ attr, attribute, a : name
 
 brel, bin_assoc, binary_association : nominal
     new : new_binary_assoc
-        f> ac|active_class:class, pc|passive_class:class, subsys, d|domain:domain
-        m> [rnum:nominal], fpersp|formalizing_persp:persp, amult|active_mult:mult
-        m> [acond|active_cond:boolean], aph|active_phrase:name
+        f> aclass|active_class:class, pclass|passive_class:class, subsys, d|domain:domain
+        m> [rnum:nominal], rside|formalizing_persp:persp, amult|active_mult:mult
+        m> [acond|active_cond:boolean], aphrase|active_phrase:name
         m> pmult|passive_mul:mult, [pcond|passive_cond:boolean]
-        m> pph|passive_phrase:name
+        m> pphrase|passive_phrase:name
         m> [ac|assoc_class:name], [acalias|assoc_alias:short_name]
 
 gen, grel, generalization : nominal

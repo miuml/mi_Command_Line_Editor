@@ -46,6 +46,25 @@ UIOP, UIARGS = range(2)
 # Class and class based methods used for all singletons
 # to save the hassle of creating single object variables
 
+def strip_comment_ws( line ):
+    """
+    Strips any or all comment portion from the line and/or any whitespace.
+
+    """
+    # Empty line
+    if not line:
+        return None
+
+    # Comment type 1: Entire line is a comment, return nothing
+    if line.startswith( COMMENT_CHAR ):
+        return None
+
+    # Comment type 2: Remove trailing comment
+    return line.split( COMMENT_CHAR )[0].strip()
+
+    # Content, but no comment, just strip whitespace
+    return line.strip()
+
 class Session_Spec:
     """
     Session Specification
@@ -382,8 +401,8 @@ class Session:
 
         self.mode = "file"
         for command in cf:
-            command = command.strip()
-            if not command or command.startswith( COMMENT_CHAR ):
+            command = strip_comment_ws( command )
+            if not command:
                 continue
             print( "* " + command )
             try:
@@ -522,8 +541,8 @@ class Session:
             except:
                 mi_File_Error("Could not open", cmd_fname )
             for command in cf:
-                command = command.strip()
-                if not command or command.startswith( COMMENT_CHAR ):
+                command = strip_comment_ws( command )
+                if not command:
                     continue
                 print( "* " + command )
                 try:

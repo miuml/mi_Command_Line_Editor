@@ -26,4 +26,9 @@ focus -s subsys -v Airfield Management
         new attr -name Min break -type posint
         new attr -name Max break -type posint
 
-focus -c class
+    focus -c class # trailing comment
+
+    new gen -superclass Air Traffic Controller -subclasses On Duty Controller, Off Duty Controller -sub_aliases ON, OFF
+
+    # new brel -aclass Control Zone -aphrase is directing traffic within -acond -amult M -pclass On Duty Controller -pphrase has traffic directed by
+
