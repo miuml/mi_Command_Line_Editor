@@ -8,8 +8,8 @@ posint:integer
 text:string
 description:string
 domain_type:[ modeled | realized ]
-persp:[ active | passive ]
-mult:[ one | many ]
+persp:[ A | P ]
+mult:[ 1 | M ]
 boolean:bool
 ==
 
@@ -61,10 +61,10 @@ attr, attribute, a : name
 brel, bin_assoc, binary_association : nominal
     new : new_binary_assoc
         f> aclass|active_class:class, pclass|passive_class:class, subsys, d|domain:domain
-        m> [rnum:nominal], rside|formalizing_persp:persp, amult|active_mult:mult
-        m> [acond|active_cond:boolean], aphrase|active_phrase:name
-        m> pmult|passive_mul:mult, [pcond|passive_cond:boolean]
-        m> pphrase|passive_phrase:name
+        m> [rnum:nominal], [rside|formalizing_persp:persp], [amult|active_mult:mult]
+        m> [acond|active_cond:boolean], [aphrase|active_phrase:name]
+        m> [pmult|passive_mult:mult], [pcond|passive_cond:boolean]
+        m> [pphrase|passive_phrase:name]
         m> [ac|assoc_class:name], [acalias|assoc_alias:short_name]
 
 gen, grel, generalization : nominal

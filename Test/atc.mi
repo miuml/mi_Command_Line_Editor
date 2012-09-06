@@ -2,12 +2,14 @@
 # Data types are limited at this point, so only name and posint are used
 # for now
 
+# ATC Domain and Subsystem
 new domain -name Air Traffic Control -alias ATC
 focus -s domain -v Air Traffic Control
 
 set subsys -name Main -new_name Airfield Management -new_alias AFM
 focus -s subsys -v Airfield Management
 
+    # The classes
     new class -name Air Traffic Controller -alias ATC
     focus -s class -v Air Traffic Controller
         new attr -name Name -type name
@@ -26,9 +28,12 @@ focus -s subsys -v Airfield Management
         new attr -name Min break -type posint
         new attr -name Max break -type posint
 
-    focus -c class # trailing comment
+    focus -c class
 
+    # Create R1 gen and add subclasses for ATC
     new gen -superclass Air Traffic Controller -subclasses On Duty Controller, Off Duty Controller -sub_aliases ON, OFF
 
-    # new brel -aclass Control Zone -aphrase is directing traffic within -acond -amult M -pclass On Duty Controller -pphrase has traffic directed by
-
+    # R2 from On Duty ATC to Control Zone
+    new brel -aclass Control Zone -aphrase is directing traffic within -acond -amult M -pclass On Duty Controller -pphrase has traffic directed by
+    # Need to rename the referential attribute from Control Zone.ID to Control Zone.Controller
+    # But the set attr feature needs to be integrated, that's next
